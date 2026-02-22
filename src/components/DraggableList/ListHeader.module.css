@@ -1,0 +1,64 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--header-bg, rgba(0, 0, 0, 0.2));
+  border-radius: 0.5rem 0.5rem 0 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.header:active {
+  cursor: grabbing;
+}
+
+.header.dragging {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.titleInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  outline: none;
+}
+
+.titleInput:focus {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.titleInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.iconBtn {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--text-muted, rgba(255, 255, 255, 0.7));
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.iconBtn:hover {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.1);
+}
