@@ -18,7 +18,7 @@ export function ListHeader({
   isDragging = false,
 }: ListHeaderProps) {
   return (
-    <div className={`${styles.header} ${isDragging ? styles.dragging : ""}`}>
+    <div className={`drag-handle ${styles.header} ${isDragging ? styles.dragging : ""}`}>
       <input
         type="text"
         className={styles.titleInput}

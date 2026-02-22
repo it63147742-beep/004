@@ -1,4 +1,24 @@
-# React + TypeScript + Vite
+# Списки дел
+
+Одностраничное приложение для ведения списков дел на React + TypeScript + Vite.
+
+## Команды для запуска
+
+```bash
+# Установка зависимостей
+npm install
+
+# Режим разработки (локальный сервер, обычно http://localhost:5173)
+npm run dev
+
+# Сборка для production
+npm run build
+
+# Превью собранного приложения
+npm run preview
+```
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

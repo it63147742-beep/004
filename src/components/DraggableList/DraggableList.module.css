@@ -8,13 +8,68 @@
 }
 
 .list {
-  width: 280px;
+  position: relative;
+  min-width: 200px;
   min-height: 80px;
   background: var(--list-bg, rgba(30, 30, 35, 0.95));
   border-radius: 0.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
+  overflow: visible;
   transition: box-shadow 0.15s ease;
+}
+
+.edgeHandle {
+  position: absolute;
+  cursor: grab;
+  z-index: 1;
+}
+
+.edgeHandle:active {
+  cursor: grabbing;
+}
+
+.edgeHandleLeft {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 12px;
+}
+
+.edgeHandleBottom {
+  left: 0;
+  right: 6px;
+  bottom: 0;
+  height: 12px;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.resizeHandle::after {
+  content: "";
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  right: 2px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+  transition: background 0.15s ease;
+}
+
+.resizeHandle:hover::after {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.resizeHandle:active::after {
+  background: rgba(59, 130, 246, 0.6);
 }
 
 .list:hover {

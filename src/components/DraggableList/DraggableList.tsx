@@ -1,8 +1,21 @@
-import { useRef } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import Draggable from "react-draggable";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import type { TodoList as TodoListType } from "../../types";
 import { ListHeader } from "./ListHeader";
-import { TodoItem } from "../TodoItem/TodoItem";
+import { SortableTodoItem } from "../TodoItem/SortableTodoItem";
 import styles from "./DraggableList.module.css";
 
 interface DraggableListProps {
@@ -12,9 +25,64 @@ interface DraggableListProps {
 }
 
 const OFFSET_STEP = 30;
+const MIN_LIST_WIDTH = 200;
+const MAX_LIST_WIDTH = 500;
 
 export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef(list);
+  listRef.current = list;
+
+  const [isResizing, setIsResizing] = useState(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+
+  const handleResizeStart = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
+      startXRef.current = e.clientX;
+      startWidthRef.current = list.width;
+    },
+    [list.width]
+  );
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const deltaX = e.clientX - startXRef.current;
+      const newWidth = Math.min(
+        MAX_LIST_WIDTH,
+        Math.max(MIN_LIST_WIDTH, startWidthRef.current + deltaX)
+      );
+      onUpdate({ ...listRef.current, width: newWidth });
+    };
+
+    const handlePointerUp = () => {
+      setIsResizing(false);
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
+    document.addEventListener("pointercancel", handlePointerUp);
+
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+      document.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [isResizing, onUpdate]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
 
   const handleDragStop = (_: unknown, data: { x: number; y: number }) => {
     onUpdate({ ...list, position: { x: data.x, y: data.y } });
@@ -34,6 +102,7 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
       const newItem = {
         id: crypto.randomUUID(),
         text: input.value.trim(),
+        priority: 3 as const,
       };
       onUpdate({
         ...list,
@@ -50,6 +119,27 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
     });
   };
 
+  const handlePriorityChange = (itemId: string, priority: 1 | 2 | 3 | 4 | 5) => {
+    onUpdate({
+      ...list,
+      items: list.items.map((i) =>
+        i.id === itemId ? { ...i, priority } : i
+      ),
+    });
+  };
+
+  const handleSortEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = list.items.findIndex((i) => i.id === active.id);
+    const newIndex = list.items.findIndex((i) => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newItems = arrayMove(list.items, oldIndex, newIndex);
+    onUpdate({ ...list, items: newItems });
+  };
+
   return (
     <Draggable
       nodeRef={nodeRef}
@@ -59,7 +149,10 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
       bounds="parent"
     >
       <div ref={nodeRef} className={styles.wrapper} style={{ position: "absolute" }}>
-        <div className={`drag-handle ${styles.list}`}>
+        <div
+          className={styles.list}
+          style={{ width: list.width }}
+        >
           <ListHeader
             title={list.title}
             isCollapsed={list.isCollapsed}
@@ -69,11 +162,28 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
           />
           {!list.isCollapsed && (
             <div className={styles.content}>
-              <ul className={styles.items}>
-                {list.items.map((item) => (
-                  <TodoItem key={item.id} item={item} onDelete={handleDeleteItem} />
-                ))}
-              </ul>
+              <DndContext
+                id={list.id}
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleSortEnd}
+              >
+                <SortableContext
+                  items={list.items.map((i) => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <ul className={styles.items}>
+                    {list.items.map((item) => (
+                      <SortableTodoItem
+                        key={item.id}
+                        item={item}
+                        onDelete={handleDeleteItem}
+                        onPriorityChange={handlePriorityChange}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
               <input
                 type="text"
                 className={styles.input}
@@ -82,6 +192,14 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
               />
             </div>
           )}
+          <div
+            className={styles.resizeHandle}
+            onPointerDown={handleResizeStart}
+            aria-label="Изменить ширину"
+            title="Потяните для изменения ширины"
+          />
+          <div className={`drag-handle ${styles.edgeHandle} ${styles.edgeHandleLeft}`} />
+          <div className={`drag-handle ${styles.edgeHandle} ${styles.edgeHandleBottom}`} />
         </div>
       </div>
     </Draggable>

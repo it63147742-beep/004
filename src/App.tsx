@@ -1,8 +1,37 @@
 import { DraggableList, getNextListPosition } from "./components/DraggableList/DraggableList";
 import { AddListButton } from "./components/AddListButton";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { TodoList } from "./types";
+import type { TodoList, TodoItem, Priority } from "./types";
 import "./App.css";
+
+const DEFAULT_PRIORITY: Priority = 3;
+const DEFAULT_LIST_WIDTH = 280;
+
+function migrateItem(item: Partial<TodoItem> & { id: string; text: string }): TodoItem {
+  const p = item.priority;
+  const priority: Priority =
+    typeof p === "number" && p >= 1 && p <= 5 ? (p as Priority) : DEFAULT_PRIORITY;
+  return { ...item, priority };
+}
+
+function migrateLists(lists: TodoList[]): TodoList[] {
+  if (!Array.isArray(lists)) return [];
+  return lists.map((list) => {
+    const listWithWidth = list as TodoList & { width?: number };
+    return {
+      ...list,
+      width:
+        typeof listWithWidth.width === "number" &&
+        listWithWidth.width >= 200 &&
+        listWithWidth.width <= 500
+          ? listWithWidth.width
+          : DEFAULT_LIST_WIDTH,
+    items: Array.isArray(list.items)
+      ? list.items.map((item: Partial<TodoItem> & { id: string; text: string }) => migrateItem(item))
+      : [],
+    };
+  });
+}
 
 const STORAGE_KEY = "todo-lists";
 
@@ -13,11 +42,16 @@ function createEmptyList(position: { x: number; y: number }): TodoList {
     items: [],
     position,
     isCollapsed: false,
+    width: DEFAULT_LIST_WIDTH,
   };
 }
 
 function App() {
-  const [lists, setLists] = useLocalStorage<TodoList[]>(STORAGE_KEY, []);
+  const [lists, setLists] = useLocalStorage<TodoList[]>(
+    STORAGE_KEY,
+    [],
+    migrateLists
+  );
 
   const handleAddList = () => {
     const position = getNextListPosition(lists.length);
@@ -34,11 +68,32 @@ function App() {
     setLists(lists.filter((list) => list.id !== id));
   };
 
+  const STACK_OFFSET = 40;
+  const handleCollapseAndStack = () => {
+    setLists(
+      lists.map((list, index) => ({
+        ...list,
+        isCollapsed: true,
+        position: { x: 20, y: 20 + index * STACK_OFFSET },
+      }))
+    );
+  };
+
   return (
     <div className="app">
       <header className="app-header">
         <h1>Списки дел</h1>
-        <AddListButton onClick={handleAddList} />
+        <div className="app-header-actions">
+          <button
+            type="button"
+            className="app-stack-btn"
+            onClick={handleCollapseAndStack}
+            title="Свернуть все списки и разместить в левом верхнем углу"
+          >
+            Собрать списки
+          </button>
+          <AddListButton onClick={handleAddList} />
+        </div>
       </header>
       <main className="app-main">
         {lists.map((list) => (

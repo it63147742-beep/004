@@ -1,7 +1,9 @@
+export type Priority = 1 | 2 | 3 | 4 | 5;
+
 export interface TodoItem {
   id: string;
   text: string;
-  // Будущее: priority?: 1 | 2 | 3 | 4 | 5;
+  priority: Priority;
 }
 
 export interface TodoList {
@@ -10,4 +12,5 @@ export interface TodoList {
   items: TodoItem[];
   position: { x: number; y: number };
   isCollapsed: boolean;
+  width: number;
 }

@@ -3,7 +3,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0.75rem;
-  margin-bottom: 0.25rem;
   background: var(--item-bg, rgba(255, 255, 255, 0.08));
   border-radius: 0.375rem;
   transition: background 0.15s ease;
@@ -13,16 +12,99 @@
   background: var(--item-hover-bg, rgba(255, 255, 255, 0.12));
 }
 
+/* Приоритет 1 — самый высокий, насыщенный */
+.item.priority1 {
+  background: rgba(239, 68, 68, 0.35);
+}
+.item.priority1:hover {
+  background: rgba(239, 68, 68, 0.45);
+}
+
+/* Приоритет 2 */
+.item.priority2 {
+  background: rgba(249, 115, 22, 0.3);
+}
+.item.priority2:hover {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+/* Приоритет 3 — средний, нейтральный */
+.item.priority3 {
+  background: rgba(255, 255, 255, 0.08);
+}
+.item.priority3:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Приоритет 4 */
+.item.priority4 {
+  background: rgba(34, 197, 94, 0.25);
+}
+.item.priority4:hover {
+  background: rgba(34, 197, 94, 0.35);
+}
+
+/* Приоритет 5 — самый низкий */
+.item.priority5 {
+  background: rgba(59, 130, 246, 0.2);
+}
+.item.priority5:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
 .text {
   flex: 1;
+  min-width: 0;
+  margin-right: 0.5rem;
   word-break: break-word;
 }
 
-.deleteBtn {
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   flex-shrink: 0;
+}
+
+.priorityBtns {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.priorityBtn {
   width: 1.5rem;
   height: 1.5rem;
-  margin-left: 0.5rem;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.priorityBtn:hover {
+  color: inherit;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.priorityBtnActive {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.priorityBtn:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.deleteBtn {
+  width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
   font-size: 1.25rem;
   line-height: 1;
