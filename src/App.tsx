@@ -1,6 +1,9 @@
+import { useRef } from "react";
 import { DraggableList, getNextListPosition } from "./components/DraggableList/DraggableList";
 import { AddListButton } from "./components/AddListButton";
+import { FileMenu } from "./components/FileMenu/FileMenu";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { toFileData, fromFileData, downloadJson, readJsonFile } from "./utils/fileFormat";
 import type { TodoList, TodoItem, Priority } from "./types";
 import "./App.css";
 
@@ -52,6 +55,34 @@ function App() {
     [],
     migrateLists
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSave = () => {
+    downloadJson(toFileData(lists));
+  };
+
+  const handleLoadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLoadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const data = await readJsonFile(file);
+    if (data) {
+      const next = fromFileData(data);
+      if (next.length) setLists(migrateLists(next));
+    }
+  };
+
+  const handleTheme = () => {
+    document.documentElement.classList.toggle("theme-light");
+  };
+
+  const handleHelp = () => {
+    alert("Списки дел: перетаскивайте списки за шапку или края. Элементы — за иконку ⋮⋮. Файл → Сохранить/Загрузить — экспорт в JSON.");
+  };
 
   const handleAddList = () => {
     const position = getNextListPosition(lists.length);
@@ -84,6 +115,20 @@ function App() {
       <header className="app-header">
         <h1>Списки дел</h1>
         <div className="app-header-actions">
+          <FileMenu
+            onSave={handleSave}
+            onLoad={handleLoadClick}
+            onTheme={handleTheme}
+            onHelp={handleHelp}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="app-file-input"
+            onChange={handleLoadFile}
+            aria-hidden
+          />
           <button
             type="button"
             className="app-stack-btn"
