@@ -37,6 +37,7 @@ function migrateLists(lists: TodoList[]): TodoList[] {
 }
 
 const STORAGE_KEY = "todo-lists";
+const STACK_OFFSET = 40;
 
 function createEmptyList(position: { x: number; y: number }): TodoList {
   return {
@@ -57,6 +58,7 @@ function App() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // --- File
   const handleSave = () => {
     downloadJson(toFileData(lists));
   };
@@ -65,15 +67,18 @@ function App() {
     fileInputRef.current?.click();
   };
 
-  const handleLoadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const loadListsFromFile = async (file: File) => {
+    const data = await readJsonFile(file);
+    if (!data) return;
+    const loadedLists = fromFileData(data);
+    if (loadedLists.length) setLists(migrateLists(loadedLists));
+  };
+
+  const handleLoadFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    const data = await readJsonFile(file);
-    if (data) {
-      const next = fromFileData(data);
-      if (next.length) setLists(migrateLists(next));
-    }
+    loadListsFromFile(file);
   };
 
   const handleTheme = () => {
@@ -84,6 +89,7 @@ function App() {
     alert("Списки дел: перетаскивайте списки за шапку или края. Элементы — за иконку ⋮⋮. Файл → Сохранить/Загрузить — экспорт в JSON.");
   };
 
+  // --- Lists
   const handleAddList = () => {
     const position = getNextListPosition(lists.length);
     setLists([...lists, createEmptyList(position)]);
@@ -99,7 +105,6 @@ function App() {
     setLists(lists.filter((list) => list.id !== id));
   };
 
-  const STACK_OFFSET = 40;
   const handleCollapseAndStack = () => {
     setLists(
       lists.map((list, index) => ({
