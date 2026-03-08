@@ -6,6 +6,8 @@ interface ListHeaderProps {
   onToggleCollapse: () => void;
   onDelete: () => void;
   onTitleChange: (title: string) => void;
+  completedCount?: number;
+  totalCount?: number;
   isDragging?: boolean;
 }
 
@@ -15,11 +17,19 @@ export function ListHeader({
   onToggleCollapse,
   onDelete,
   onTitleChange,
+  completedCount,
+  totalCount,
   isDragging = false,
 }: ListHeaderProps) {
+  const showCounter =
+    typeof completedCount === "number" &&
+    typeof totalCount === "number" &&
+    totalCount > 0;
+
   return (
-    <div className={`drag-handle ${styles.header} ${isDragging ? styles.dragging : ""}`}>
-      <input
+    <>
+      <div className={`drag-handle ${styles.header} ${isDragging ? styles.dragging : ""}`}>
+        <input
         type="text"
         className={styles.titleInput}
         value={title}
@@ -47,5 +57,14 @@ export function ListHeader({
         </button>
       </div>
     </div>
+      {showCounter && !isCollapsed && (
+        <div
+          className={`drag-handle ${styles.counterHandle}`}
+          style={{ paddingLeft: "1.25rem" }}
+        >
+          Выполнено {completedCount} из {totalCount}
+        </div>
+      )}
+    </>
   );
 }

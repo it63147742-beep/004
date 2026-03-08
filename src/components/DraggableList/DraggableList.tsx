@@ -169,6 +169,14 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
             onToggleCollapse={handleToggleCollapse}
             onDelete={() => onDelete(list.id)}
             onTitleChange={handleTitleChange}
+            completedCount={
+              list.type === "checklist"
+                ? list.items.filter((i) => i.completed).length
+                : undefined
+            }
+            totalCount={
+              list.type === "checklist" ? list.items.length : undefined
+            }
           />
           {!list.isCollapsed && (
             <div className={styles.content}>
