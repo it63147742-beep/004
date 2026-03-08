@@ -18,3 +18,10 @@ export interface TodoList {
   isCollapsed: boolean;
   width: number;
 }
+
+export interface TrashItem extends TodoItem {
+  deletedAt: number;
+  sourceListId: string;
+  sourceListTitle?: string;
+  sourceListType?: ListType;
+}

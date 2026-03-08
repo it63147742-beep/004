@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import type { TodoList as TodoListType } from "../../types";
+import type { TodoList as TodoListType, TodoItem as TodoItemType } from "../../types";
 import { TodoItem } from "../TodoItem/TodoItem";
 import { ListHeader } from "./ListHeader";
 import { SortableTodoItem } from "../TodoItem/SortableTodoItem";
@@ -24,6 +24,7 @@ interface DraggableListProps {
   filterCompleted?: "all" | "done" | "todo";
   onUpdate: (list: TodoListType) => void;
   onDelete: (id: string) => void;
+  onMoveToTrash?: (listId: string, list: TodoListType, item: TodoItemType) => void;
 }
 
 const OFFSET_STEP = 30;
@@ -35,6 +36,7 @@ export function DraggableList({
   filterCompleted = "all",
   onUpdate,
   onDelete,
+  onMoveToTrash,
 }: DraggableListProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const listRef = useRef(list);
@@ -121,10 +123,15 @@ export function DraggableList({
   };
 
   const handleDeleteItem = (itemId: string) => {
-    onUpdate({
-      ...list,
-      items: list.items.filter((i) => i.id !== itemId),
-    });
+    const item = list.items.find((i) => i.id === itemId);
+    if (item && onMoveToTrash) {
+      onMoveToTrash(list.id, list, item);
+    } else {
+      onUpdate({
+        ...list,
+        items: list.items.filter((i) => i.id !== itemId),
+      });
+    }
   };
 
   const handlePriorityChange = (itemId: string, priority: 1 | 2 | 3 | 4 | 5) => {

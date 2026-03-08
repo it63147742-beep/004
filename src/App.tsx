@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { DraggableList, getNextListPosition } from "./components/DraggableList/DraggableList";
+import { TrashList } from "./components/TrashList/TrashList";
 import { AddListButton } from "./components/AddListButton";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { TodoList, TodoItem, Priority } from "./types";
+import type { TodoList, TodoItem, Priority, TrashItem } from "./types";
 import "./App.css";
 
 const DEFAULT_PRIORITY: Priority = 3;
@@ -39,6 +40,14 @@ function migrateLists(lists: TodoList[]): TodoList[] {
 }
 
 const STORAGE_KEY = "todo-lists";
+const TRASH_STORAGE_KEY = "todo-trash";
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function migrateTrash(items: TrashItem[]): TrashItem[] {
+  if (!Array.isArray(items)) return [];
+  const now = Date.now();
+  return items.filter((item) => now - (item.deletedAt ?? 0) < SEVEN_DAYS_MS);
+}
 
 function createEmptyList(
   position: { x: number; y: number },
@@ -61,6 +70,11 @@ function App() {
     [],
     migrateLists
   );
+  const [trash, setTrash] = useLocalStorage<TrashItem[]>(
+    TRASH_STORAGE_KEY,
+    [],
+    migrateTrash
+  );
   const [filter, setFilter] = useState<"all" | "done" | "todo">("all");
 
   const handleAddList = (type: "default" | "checklist" = "default") => {
@@ -76,6 +90,54 @@ function App() {
 
   const handleDeleteList = (id: string) => {
     setLists(lists.filter((list) => list.id !== id));
+  };
+
+  const cleanExpiredTrash = (items: TrashItem[]) =>
+    items.filter((item) => Date.now() - item.deletedAt < SEVEN_DAYS_MS);
+
+  const handleMoveToTrash = (listId: string, list: TodoList, item: TodoItem) => {
+    const trashItem: TrashItem = {
+      ...item,
+      deletedAt: Date.now(),
+      sourceListId: listId,
+      sourceListTitle: list.title,
+      sourceListType: list.type,
+    };
+    setTrash((prev) => cleanExpiredTrash([...prev, trashItem]));
+    setLists(
+      lists.map((l) =>
+        l.id === listId ? { ...l, items: l.items.filter((i) => i.id !== item.id) } : l
+      )
+    );
+  };
+
+  const handleRestoreFromTrash = (trashItem: TrashItem) => {
+    const { deletedAt, sourceListId, sourceListTitle, sourceListType, ...item } = trashItem;
+    const targetList = lists.find((l) => l.id === sourceListId);
+    if (targetList) {
+      setLists(
+        lists.map((l) =>
+          l.id === sourceListId
+            ? { ...l, items: [...l.items, item as TodoItem] }
+            : l
+        )
+      );
+    } else {
+      const position = getNextListPosition(lists.length);
+      setLists([
+        ...lists,
+        {
+          id: crypto.randomUUID(),
+          title: sourceListTitle ?? "Восстановленный список",
+          type: sourceListType ?? "default",
+          items: [item as TodoItem],
+          position,
+          isCollapsed: false,
+          width: DEFAULT_LIST_WIDTH,
+        },
+      ]);
+    }
+    setTrash((prev) => cleanExpiredTrash(prev.filter((i) => i.id !== trashItem.id)));
   };
 
   const STACK_OFFSET = 40;
@@ -124,8 +186,15 @@ function App() {
             filterCompleted={filter}
             onUpdate={handleUpdateList}
             onDelete={handleDeleteList}
+            onMoveToTrash={handleMoveToTrash}
           />
         ))}
+        <TrashList
+          items={trash}
+          onRestore={handleRestoreFromTrash}
+          onUpdateExpanded={() => {}}
+          defaultCollapsed={true}
+        />
       </main>
     </div>
   );
