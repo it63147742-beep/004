@@ -8,12 +8,14 @@ interface SortableTodoItemProps {
   item: TodoItemType;
   onDelete: (id: string) => void;
   onPriorityChange: (id: string, priority: Priority) => void;
+  onToggleComplete?: (id: string) => void;
 }
 
 export function SortableTodoItem({
   item,
   onDelete,
   onPriorityChange,
+  onToggleComplete,
 }: SortableTodoItemProps) {
   const {
     attributes,
@@ -43,6 +45,7 @@ export function SortableTodoItem({
           item={item}
           onDelete={onDelete}
           onPriorityChange={onPriorityChange}
+          onToggleComplete={onToggleComplete}
         />
       </div>
     </li>

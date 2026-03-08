@@ -103,6 +103,7 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
         id: crypto.randomUUID(),
         text: input.value.trim(),
         priority: 3 as const,
+        completed: list.type === "checklist" ? false : undefined,
       };
       onUpdate({
         ...list,
@@ -124,6 +125,15 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
       ...list,
       items: list.items.map((i) =>
         i.id === itemId ? { ...i, priority } : i
+      ),
+    });
+  };
+
+  const handleToggleComplete = (itemId: string) => {
+    onUpdate({
+      ...list,
+      items: list.items.map((i) =>
+        i.id === itemId ? { ...i, completed: !i.completed } : i
       ),
     });
   };
@@ -179,6 +189,9 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
                         item={item}
                         onDelete={handleDeleteItem}
                         onPriorityChange={handlePriorityChange}
+                        onToggleComplete={
+                          list.type === "checklist" ? handleToggleComplete : undefined
+                        }
                       />
                     ))}
                   </ul>
