@@ -14,12 +14,14 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import type { TodoList as TodoListType } from "../../types";
+import { TodoItem } from "../TodoItem/TodoItem";
 import { ListHeader } from "./ListHeader";
 import { SortableTodoItem } from "../TodoItem/SortableTodoItem";
 import styles from "./DraggableList.module.css";
 
 interface DraggableListProps {
   list: TodoListType;
+  filterCompleted?: "all" | "done" | "todo";
   onUpdate: (list: TodoListType) => void;
   onDelete: (id: string) => void;
 }
@@ -28,7 +30,12 @@ const OFFSET_STEP = 30;
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 500;
 
-export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) {
+export function DraggableList({
+  list,
+  filterCompleted = "all",
+  onUpdate,
+  onDelete,
+}: DraggableListProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
   const listRef = useRef(list);
   listRef.current = list;
@@ -138,6 +145,14 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
     });
   };
 
+  const isFiltered =
+    list.type === "checklist" && filterCompleted !== "all";
+  const visibleItems = isFiltered
+    ? list.items.filter((i) =>
+        filterCompleted === "done" ? i.completed : !i.completed
+      )
+    : list.items;
+
   const handleSortEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -172,6 +187,20 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
           />
           {!list.isCollapsed && (
             <div className={styles.content}>
+              {isFiltered ? (
+                <ul className={styles.items}>
+                  {visibleItems.map((item) => (
+                    <li key={item.id}>
+                      <TodoItem
+                        item={item}
+                        onDelete={handleDeleteItem}
+                        onPriorityChange={handlePriorityChange}
+                        onToggleComplete={handleToggleComplete}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
               <DndContext
                 id={list.id}
                 sensors={sensors}
@@ -197,6 +226,7 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
                   </ul>
                 </SortableContext>
               </DndContext>
+              )}
               <input
                 type="text"
                 className={styles.input}

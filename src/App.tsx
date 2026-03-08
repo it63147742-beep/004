@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DraggableList, getNextListPosition } from "./components/DraggableList/DraggableList";
 import { AddListButton } from "./components/AddListButton";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -60,6 +61,7 @@ function App() {
     [],
     migrateLists
   );
+  const [filter, setFilter] = useState<"all" | "done" | "todo">("all");
 
   const handleAddList = (type: "default" | "checklist" = "default") => {
     const position = getNextListPosition(lists.length);
@@ -92,6 +94,16 @@ function App() {
       <header className="app-header">
         <h1>Списки дел</h1>
         <div className="app-header-actions">
+          {(["all", "done", "todo"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              className="app-stack-btn"
+              onClick={() => setFilter(f)}
+            >
+              {f === "all" ? "Все" : f === "done" ? "Выполненные" : "Невыполненные"}
+            </button>
+          ))}
           <button
             type="button"
             className="app-stack-btn"
@@ -109,6 +121,7 @@ function App() {
           <DraggableList
             key={list.id}
             list={list}
+            filterCompleted={filter}
             onUpdate={handleUpdateList}
             onDelete={handleDeleteList}
           />
