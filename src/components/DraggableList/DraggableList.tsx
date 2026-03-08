@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import type { TodoList as TodoListType, TodoItem as TodoItemType } from "../../types";
+import type { TodoList as TodoListType } from "../../types";
 import { TodoItem } from "../TodoItem/TodoItem";
 import { ListHeader } from "./ListHeader";
 import { SortableTodoItem } from "../TodoItem/SortableTodoItem";
@@ -24,7 +24,7 @@ interface DraggableListProps {
   filterCompleted?: "all" | "done" | "todo";
   onUpdate: (list: TodoListType) => void;
   onDelete: (id: string) => void;
-  onMoveToTrash?: (listId: string, list: TodoListType, item: TodoItemType) => void;
+  onMoveToTrash?: (item: import("../../types").TodoItem, listId: string) => void;
 }
 
 const OFFSET_STEP = 30;
@@ -125,7 +125,7 @@ export function DraggableList({
   const handleDeleteItem = (itemId: string) => {
     const item = list.items.find((i) => i.id === itemId);
     if (item && onMoveToTrash) {
-      onMoveToTrash(list.id, list, item);
+      onMoveToTrash(item, list.id);
     } else {
       onUpdate({
         ...list,

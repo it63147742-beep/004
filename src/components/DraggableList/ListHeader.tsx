@@ -4,11 +4,10 @@ interface ListHeaderProps {
   title: string;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  onDelete?: () => void;
+  onDelete: () => void;
   onTitleChange: (title: string) => void;
   isDragging?: boolean;
   hideDelete?: boolean;
-  readOnlyTitle?: boolean;
 }
 
 export function ListHeader({
@@ -19,21 +18,17 @@ export function ListHeader({
   onTitleChange,
   isDragging = false,
   hideDelete = false,
-  readOnlyTitle = false,
 }: ListHeaderProps) {
   return (
     <div className={`drag-handle ${styles.header} ${isDragging ? styles.dragging : ""}`}>
-      {readOnlyTitle ? (
-        <span className={styles.titleInput}>{title}</span>
-      ) : (
-        <input
-          type="text"
-          className={styles.titleInput}
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="Название списка"
-        />
-      )}
+      <input
+        type="text"
+        className={styles.titleInput}
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="Название списка"
+        readOnly={hideDelete}
+      />
       <div className={styles.actions}>
         <button
           type="button"
@@ -44,7 +39,7 @@ export function ListHeader({
         >
           {isCollapsed ? "▼" : "▲"}
         </button>
-        {!hideDelete && onDelete && (
+        {!hideDelete && (
           <button
             type="button"
             className={styles.iconBtn}

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { DraggableList, getNextListPosition } from "./components/DraggableList/DraggableList";
-import { TrashList } from "./components/TrashList/TrashList";
+import { TrashList, type TrashListState } from "./components/TrashList/TrashList";
 import { AddListButton } from "./components/AddListButton";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { TodoList, TodoItem, Priority, TrashItem } from "./types";
+import type { TodoList, TodoItem, TrashItem, Priority } from "./types";
 import "./App.css";
+
+const TRASH_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const DEFAULT_PRIORITY: Priority = 3;
 const DEFAULT_LIST_WIDTH = 280;
@@ -41,13 +43,41 @@ function migrateLists(lists: TodoList[]): TodoList[] {
 
 const STORAGE_KEY = "todo-lists";
 const TRASH_STORAGE_KEY = "todo-trash";
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-function migrateTrash(items: TrashItem[]): TrashItem[] {
-  if (!Array.isArray(items)) return [];
+function migrateTrash(trash: TrashListState): TrashListState {
+  if (!trash || !Array.isArray(trash.items)) {
+    return {
+      items: [],
+      position: { x: 20, y: 60 },
+      isCollapsed: true,
+      width: 280,
+    };
+  }
   const now = Date.now();
-  return items.filter((item) => now - (item.deletedAt ?? 0) < SEVEN_DAYS_MS);
+  const validItems = trash.items.filter(
+    (ti: TrashItem) =>
+      ti?.item &&
+      ti?.deletedAt &&
+      ti?.sourceListId &&
+      now - ti.deletedAt < TRASH_WEEK_MS
+  );
+  return {
+    items: validItems,
+    position:
+      trash.position && typeof trash.position.x === "number"
+        ? trash.position
+        : { x: 20, y: 60 },
+    isCollapsed: trash.isCollapsed !== false,
+    width: typeof trash.width === "number" ? trash.width : 280,
+  };
 }
+
+const initialTrash: TrashListState = {
+  items: [],
+  position: { x: 20, y: 60 },
+  isCollapsed: true,
+  width: 280,
+};
 
 function createEmptyList(
   position: { x: number; y: number },
@@ -70,12 +100,45 @@ function App() {
     [],
     migrateLists
   );
-  const [trash, setTrash] = useLocalStorage<TrashItem[]>(
+  const [trash, setTrash] = useLocalStorage<TrashListState>(
     TRASH_STORAGE_KEY,
-    [],
+    initialTrash,
     migrateTrash
   );
   const [filter, setFilter] = useState<"all" | "done" | "todo">("all");
+
+  const handleMoveToTrash = (item: TodoItem, listId: string) => {
+    setLists(
+      lists.map((list) =>
+        list.id === listId
+          ? { ...list, items: list.items.filter((i) => i.id !== item.id) }
+          : list
+      )
+    );
+    setTrash((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        { item, deletedAt: Date.now(), sourceListId: listId },
+      ],
+    }));
+  };
+
+  const handleRestoreFromTrash = (trashItem: TrashItem) => {
+    const sourceExists = lists.some((l) => l.id === trashItem.sourceListId);
+    if (!sourceExists) return;
+    setLists(
+      lists.map((list) =>
+        list.id === trashItem.sourceListId
+          ? { ...list, items: [...list.items, trashItem.item] }
+          : list
+      )
+    );
+    setTrash((prev) => ({
+      ...prev,
+      items: prev.items.filter((ti) => ti.item.id !== trashItem.item.id),
+    }));
+  };
 
   const handleAddList = (type: "default" | "checklist" = "default") => {
     const position = getNextListPosition(lists.length);
@@ -92,54 +155,6 @@ function App() {
     setLists(lists.filter((list) => list.id !== id));
   };
 
-  const cleanExpiredTrash = (items: TrashItem[]) =>
-    items.filter((item) => Date.now() - item.deletedAt < SEVEN_DAYS_MS);
-
-  const handleMoveToTrash = (listId: string, list: TodoList, item: TodoItem) => {
-    const trashItem: TrashItem = {
-      ...item,
-      deletedAt: Date.now(),
-      sourceListId: listId,
-      sourceListTitle: list.title,
-      sourceListType: list.type,
-    };
-    setTrash((prev) => cleanExpiredTrash([...prev, trashItem]));
-    setLists(
-      lists.map((l) =>
-        l.id === listId ? { ...l, items: l.items.filter((i) => i.id !== item.id) } : l
-      )
-    );
-  };
-
-  const handleRestoreFromTrash = (trashItem: TrashItem) => {
-    const { deletedAt, sourceListId, sourceListTitle, sourceListType, ...item } = trashItem;
-    const targetList = lists.find((l) => l.id === sourceListId);
-    if (targetList) {
-      setLists(
-        lists.map((l) =>
-          l.id === sourceListId
-            ? { ...l, items: [...l.items, item as TodoItem] }
-            : l
-        )
-      );
-    } else {
-      const position = getNextListPosition(lists.length);
-      setLists([
-        ...lists,
-        {
-          id: crypto.randomUUID(),
-          title: sourceListTitle ?? "Восстановленный список",
-          type: sourceListType ?? "default",
-          items: [item as TodoItem],
-          position,
-          isCollapsed: false,
-          width: DEFAULT_LIST_WIDTH,
-        },
-      ]);
-    }
-    setTrash((prev) => cleanExpiredTrash(prev.filter((i) => i.id !== trashItem.id)));
-  };
-
   const STACK_OFFSET = 40;
   const handleCollapseAndStack = () => {
     setLists(
@@ -149,6 +164,10 @@ function App() {
         position: { x: 20, y: 20 + index * STACK_OFFSET },
       }))
     );
+  };
+
+  const handleUpdateTrash = (updated: TrashListState) => {
+    setTrash(updated);
   };
 
   return (
@@ -190,10 +209,10 @@ function App() {
           />
         ))}
         <TrashList
-          items={trash}
+          trash={trash}
+          lists={lists}
+          onUpdate={handleUpdateTrash}
           onRestore={handleRestoreFromTrash}
-          onUpdateExpanded={() => {}}
-          defaultCollapsed={true}
         />
       </main>
     </div>

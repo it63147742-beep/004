@@ -1,80 +1,110 @@
-import { useState } from "react";
+import { useRef } from "react";
+import Draggable from "react-draggable";
+import type { TrashItem as TrashItemType, TodoList } from "../../types";
 import { ListHeader } from "../DraggableList/ListHeader";
-import type { TrashItem } from "../../types";
 import styles from "./TrashList.module.css";
 
-interface TrashListProps {
-  items: TrashItem[];
-  onRestore: (item: TrashItem) => void;
-  onUpdateExpanded: (expanded: boolean) => void;
-  defaultCollapsed?: boolean;
+export interface TrashListState {
+  items: TrashItemType[];
+  position: { x: number; y: number };
+  isCollapsed: boolean;
+  width: number;
 }
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+interface TrashListProps {
+  trash: TrashListState;
+  lists: TodoList[];
+  onUpdate: (trash: TrashListState) => void;
+  onRestore: (trashItem: TrashItemType) => void;
+}
 
 export function TrashList({
-  items,
+  trash,
+  lists,
+  onUpdate,
   onRestore,
-  onUpdateExpanded,
-  defaultCollapsed = true,
 }: TrashListProps) {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const nodeRef = useRef<HTMLDivElement>(null);
 
-  const handleToggleCollapse = () => {
-    const next = !isCollapsed;
-    setIsCollapsed(next);
-    onUpdateExpanded(!next);
+  const handleDragStop = (_: unknown, data: { x: number; y: number }) => {
+    onUpdate({ ...trash, position: { x: data.x, y: data.y } });
   };
 
-  const validItems = items.filter(
-    (item) => Date.now() - item.deletedAt < SEVEN_DAYS_MS
-  );
+  const handleToggleCollapse = () => {
+    onUpdate({ ...trash, isCollapsed: !trash.isCollapsed });
+  };
 
-  const title = `Корзина${validItems.length > 0 ? ` (${validItems.length})` : ""}`;
+  const getSourceListInfo = (sourceListId: string) => {
+    const list = lists.find((l) => l.id === sourceListId);
+    return {
+      title: list?.title ?? "Удалённый список",
+      exists: !!list,
+    };
+  };
+
+  if (trash.items.length === 0) return null;
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.list}>
-        <ListHeader
-          title={title}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-          onTitleChange={() => {}}
-          hideDelete
-          readOnlyTitle
-        />
-        {!isCollapsed && (
-          <div className={styles.content}>
-            {validItems.length === 0 ? (
-              <p className={styles.emptyMessage}>Корзина пуста</p>
-            ) : (
+    <Draggable
+      nodeRef={nodeRef}
+      position={trash.position}
+      onStop={handleDragStop}
+      handle=".drag-handle"
+      bounds="parent"
+    >
+      <div
+        ref={nodeRef}
+        className={styles.wrapper}
+        style={{ position: "absolute" }}
+      >
+        <div className={styles.list} style={{ width: trash.width }}>
+          <ListHeader
+            title={`Корзина (${trash.items.length})`}
+            isCollapsed={trash.isCollapsed}
+            onToggleCollapse={handleToggleCollapse}
+            onDelete={() => {}}
+            onTitleChange={() => {}}
+            hideDelete
+          />
+          {!trash.isCollapsed && (
+            <div className={styles.content}>
               <ul className={styles.items}>
-                {validItems.map((item) => (
-                  <li key={item.id} className={styles.trashItem}>
-                    <span className={styles.itemText} title={item.text}>
-                      {item.text}
-                    </span>
-                    {item.sourceListTitle && (
-                      <span className={styles.sourceHint}>
-                        из «{item.sourceListTitle}»
+                {trash.items.map((ti) => {
+                  const { title, exists } = getSourceListInfo(ti.sourceListId);
+                  return (
+                    <li key={ti.item.id} className={styles.trashItem}>
+                      <span className={styles.text}>{ti.item.text}</span>
+                      <span
+                        className={
+                          exists ? styles.source : styles.sourceDeleted
+                        }
+                      >
+                        {title}
                       </span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.restoreBtn}
-                      onClick={() => onRestore(item)}
-                      aria-label="Восстановить"
-                      title="Восстановить в список"
-                    >
-                      ↶ Восстановить
-                    </button>
-                  </li>
-                ))}
+                      <button
+                        type="button"
+                        className={styles.restoreBtn}
+                        onClick={() => onRestore(ti)}
+                        disabled={!exists}
+                        aria-label="Восстановить"
+                        title={
+                          exists
+                            ? "Восстановить в исходный список"
+                            : "Исходный список удалён, восстановление невозможно"
+                        }
+                      >
+                        ↩ Восстановить
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+          <div className={`drag-handle ${styles.edgeHandle} ${styles.edgeHandleLeft}`} />
+          <div className={`drag-handle ${styles.edgeHandle} ${styles.edgeHandleBottom}`} />
+        </div>
       </div>
-    </div>
+    </Draggable>
   );
 }

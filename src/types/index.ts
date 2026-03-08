@@ -19,9 +19,8 @@ export interface TodoList {
   width: number;
 }
 
-export interface TrashItem extends TodoItem {
+export interface TrashItem {
+  item: TodoItem;
   deletedAt: number;
   sourceListId: string;
-  sourceListTitle?: string;
-  sourceListType?: ListType;
 }
