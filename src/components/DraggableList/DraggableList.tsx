@@ -27,6 +27,7 @@ interface DraggableListProps {
 const OFFSET_STEP = 30;
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 500;
+const GRID_STEP = 20;
 
 export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -229,8 +230,9 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
 }
 
 export function getNextListPosition(listsCount: number): { x: number; y: number } {
+  const snap = (v: number) => Math.round(v / GRID_STEP) * GRID_STEP;
   return {
-    x: 20 + (listsCount % 5) * OFFSET_STEP,
-    y: 20 + Math.floor(listsCount / 5) * OFFSET_STEP,
+    x: snap(20 + (listsCount % 5) * OFFSET_STEP),
+    y: snap(20 + Math.floor(listsCount / 5) * OFFSET_STEP),
   };
 }
