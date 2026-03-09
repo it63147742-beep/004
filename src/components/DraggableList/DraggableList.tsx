@@ -27,11 +27,6 @@ interface DraggableListProps {
 const OFFSET_STEP = 30;
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 500;
-const GRID_STEP = 20;
-
-function snapToGrid(value: number): number {
-  return Math.round(value / GRID_STEP) * GRID_STEP;
-}
 
 export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) {
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -90,11 +85,7 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
   );
 
   const handleDragStop = (_: unknown, data: { x: number; y: number }) => {
-    const position = {
-      x: snapToGrid(data.x),
-      y: snapToGrid(data.y),
-    };
-    onUpdate({ ...list, position });
+    onUpdate({ ...list, position: { x: data.x, y: data.y } });
   };
 
   const handleToggleCollapse = () => {
@@ -166,6 +157,7 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
       onStop={handleDragStop}
       handle=".drag-handle"
       bounds="parent"
+      grid={[20, 20]}
     >
       <div ref={nodeRef} className={styles.wrapper} style={{ position: "absolute" }}>
         <div
@@ -237,12 +229,8 @@ export function DraggableList({ list, onUpdate, onDelete }: DraggableListProps) 
 }
 
 export function getNextListPosition(listsCount: number): { x: number; y: number } {
-  const raw = {
+  return {
     x: 20 + (listsCount % 5) * OFFSET_STEP,
     y: 20 + Math.floor(listsCount / 5) * OFFSET_STEP,
-  };
-  return {
-    x: snapToGrid(raw.x),
-    y: snapToGrid(raw.y),
   };
 }
